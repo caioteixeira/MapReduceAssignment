@@ -1,6 +1,7 @@
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.ArrayList;
 
 import javax.swing.JButton;
@@ -173,7 +174,16 @@ public class GUI extends JFrame {
     }
 
     try {
-      Hadoop.executeMeanYear(y1, y2, input, output, pars);
+      if (!Hadoop.executeMeanYear(y1, y2, input, output, pars)) {
+        String[] buttons = { "Yes", "No" };
+        int result = JOptionPane.showOptionDialog(null,
+            "The output directory already exists. Would you like to erase it?",
+            "Error", JOptionPane.WARNING_MESSAGE, 0, null, buttons, buttons[1]);
+        if (result == 0) {
+          Hadoop.deleteDir(new File(output));
+          executeMean(input, output);
+        }
+      }
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, "Error during processing");
       e.printStackTrace();

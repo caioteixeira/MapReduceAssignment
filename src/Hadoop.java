@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,12 +38,14 @@ public abstract class Hadoop {
             i++;
           }
           try {
-            float val = Float.parseFloat(dataLine.nextToken());
+            String data = dataLine.nextToken();
+            data = data.replaceAll("\\D+", "");
+            float val = Float.parseFloat(data);
             i++;
             vals.set(val);
             context.write(title, vals);
           } catch (NumberFormatException e) {
-            continue;
+            break;
           }
         }
       }
@@ -67,8 +70,11 @@ public abstract class Hadoop {
     }
   }
 
-  public static void executeMeanYear(int year1, int year2, String input,
+  public static boolean executeMeanYear(int year1, int year2, String input,
       String output, ArrayList<Integer> par) throws Exception {
+    if (new File(output).exists()) {
+      return false;
+    }
     paramSelect = par;
     initializeParams();
     Configuration conf = new Configuration();
@@ -79,13 +85,13 @@ public abstract class Hadoop {
     job.setReducerClass(MeanReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(FloatWritable.class);
-    System.out.println(input + "/" + year1);
     while (year1 <= year2) {
       FileInputFormat.addInputPath(job, new Path(input + "/" + year1));
       year1++;
     }
     FileOutputFormat.setOutputPath(job, new Path(output));
     job.waitForCompletion(true);
+    return true;
   }
 
   private static void initializeParams() {
@@ -101,5 +107,15 @@ public abstract class Hadoop {
     param.put(18, "MIN");
     param.put(19, "PRCP");
     param.put(20, "SNDP");
+  }
+
+  public static void deleteDir(File file) {
+    File[] contents = file.listFiles();
+    if (contents != null) {
+      for (File f : contents) {
+        deleteDir(f);
+      }
+    }
+    file.delete();
   }
 }
