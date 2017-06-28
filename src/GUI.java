@@ -24,16 +24,32 @@ public class GUI extends JFrame {
   private JComboBox<Object> yearI;
   private JComboBox<Object> yearII;
   private JComboBox<String> month;
+  private int y1;
+  private int y2;
+  private ArrayList<Integer> pars;
+  private JPanel paneLoad;
+  private JPanel contentPane;
 
   public GUI(String input, String output) {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setBounds(100, 100, 600, 410);
     setResizable(false);
 
-    JPanel contentPane = new JPanel();
+    contentPane = new JPanel();
     contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
     setContentPane(contentPane);
     contentPane.setLayout(null);
+
+    paneLoad = new JPanel();
+    paneLoad.setBorder(new EmptyBorder(5, 5, 5, 5));
+    paneLoad.setLayout(null);
+
+    JLabel load = new JLabel("Loading...");
+    load.setFont(new Font("Tahoma", Font.BOLD, 22));
+    load.setBounds(240, 50, 150, 50); // setBounds(x, y, largura, altura)
+    paneLoad.add(load);
+
+    paneLoad.setVisible(false);
 
     JLabel parame = new JLabel("Parameters:");
     parame.setFont(new Font("Tahoma", Font.BOLD, 14));
@@ -153,26 +169,10 @@ public class GUI extends JFrame {
   }
 
   public void executeMean(String input, String output) {
-    int y1 = (Integer) yearI.getSelectedItem();
-    int y2 = (Integer) yearII.getSelectedItem();
-
-    if (y1 > y2) {
-      JOptionPane.showMessageDialog(null, "Period incorrect");
+    if (!verifData())
       return;
-    }
-
-    ArrayList<Integer> pars = new ArrayList<Integer>();
-    for (int i = 0; i < param.length; i++) {
-      if (param[i] != null && param[i].isSelected()) {
-        pars.add(i);
-      }
-    }
-
-    if (pars.isEmpty()) {
-      JOptionPane.showMessageDialog(null, "Select one parameter");
-      return;
-    }
-
+    showLoad();
+    JOptionPane.showMessageDialog(null, "Start processing");
     try {
       if (!Hadoop.executeMeanYear(y1, y2, input, output, pars)) {
         String[] buttons = { "Yes", "No" };
@@ -182,11 +182,49 @@ public class GUI extends JFrame {
         if (result == 0) {
           Hadoop.deleteDir(new File(output));
           executeMean(input, output);
+          return;
         }
       }
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, "Error during processing");
       e.printStackTrace();
     }
+    hideLoad();
+  }
+
+  private boolean verifData() {
+    y1 = (Integer) yearI.getSelectedItem();
+    y2 = (Integer) yearII.getSelectedItem();
+
+    if (y1 > y2) {
+      JOptionPane.showMessageDialog(null, "Period incorrect");
+      return false;
+    }
+
+    pars = new ArrayList<Integer>();
+    for (int i = 0; i < param.length; i++) {
+      if (param[i] != null && param[i].isSelected()) {
+        pars.add(i);
+      }
+    }
+
+    if (pars.isEmpty()) {
+      JOptionPane.showMessageDialog(null, "Select one parameter");
+      return false;
+    }
+
+    return true;
+  }
+
+  public void showLoad() {
+    contentPane.setVisible(false);
+    paneLoad.setVisible(true);
+    setContentPane(paneLoad);
+  }
+
+  public void hideLoad() {
+    paneLoad.setVisible(false);
+    contentPane.setVisible(true);
+    setContentPane(contentPane);
   }
 }
