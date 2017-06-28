@@ -247,6 +247,9 @@ public class GUI extends JFrame {
   }
 
   private void fillTableResult(String output) {
+    if (!new File(output + "/part-r-00000").exists()) {
+      return;
+    }
     TextReader read = new TextReader(output + "/part-r-00000");
     String lres = read.readLine(1);
     String aux = lres;
