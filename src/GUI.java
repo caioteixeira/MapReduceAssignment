@@ -1,8 +1,10 @@
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -12,7 +14,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 
 public class GUI extends JFrame {
   private static final long serialVersionUID = 1L;
@@ -29,6 +33,10 @@ public class GUI extends JFrame {
   private ArrayList<Integer> pars;
   private JPanel paneLoad;
   private JPanel contentPane;
+  private String[][] data = new String[1][1];
+  private ArrayList<String> cols = new ArrayList<String>();
+  private JScrollPane tab;
+  private JTable table;
 
   public GUI(String input, String output) {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -50,6 +58,8 @@ public class GUI extends JFrame {
     paneLoad.add(load);
 
     paneLoad.setVisible(false);
+
+    fillTableResult(output);
 
     JLabel parame = new JLabel("Parameters:");
     parame.setFont(new Font("Tahoma", Font.BOLD, 14));
@@ -89,7 +99,19 @@ public class GUI extends JFrame {
     month.setBounds(350, 30, 90, 30);
     contentPane.add(month);
 
-    JScrollPane tab = new JScrollPane();
+    table = new JTable(data, cols.toArray()) {
+      private static final long serialVersionUID = 1L;
+
+      public boolean isCellEditable(int row, int col) {
+        return false;
+      }
+    };
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    table.setFont(new Font("Tahoma", Font.PLAIN, 16));
+    table.setBorder(new LineBorder(Color.LIGHT_GRAY));
+    table.setBackground(Color.WHITE);
+    tab = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+        JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     tab.setBounds(160, 70, 430, 280);
     contentPane.add(tab);
 
@@ -189,7 +211,9 @@ public class GUI extends JFrame {
       JOptionPane.showMessageDialog(null, "Error during processing");
       e.printStackTrace();
     }
-    hideLoad();
+    GUI frame = new GUI(input, output);
+    frame.setVisible(true);
+    dispose();
   }
 
   private boolean verifData() {
@@ -222,9 +246,38 @@ public class GUI extends JFrame {
     setContentPane(paneLoad);
   }
 
-  public void hideLoad() {
-    paneLoad.setVisible(false);
-    contentPane.setVisible(true);
-    setContentPane(contentPane);
+  private void fillTableResult(String output) {
+    TextReader read = new TextReader(output + "/part-r-00000");
+    String lres = read.readLine(1);
+    String aux = lres;
+    StringTokenizer d;
+    while (lres != null) {
+      d = new StringTokenizer(lres);
+      if (d.hasMoreTokens()) {
+        cols.add(d.nextToken());
+      }
+      lres = read.readLine(1);
+    }
+    read.closeReader();
+    
+    read.openNewFile(output + "/part-r-00000");
+    if (aux == null)
+      return;
+    d = new StringTokenizer(aux);
+    data = new String[d.countTokens() - 1][cols.size()];
+    for (int i = 0; i < data[0].length; i++) {
+      int j = 0;
+      d = new StringTokenizer(read.readLine(1));
+      while (j < data.length) {
+        try {
+          String n = d.nextToken();
+          n = String.format("%.3f", Float.parseFloat(n));
+          data[j][i] = n;
+          j++;
+        } catch (NumberFormatException e) {
+          continue;
+        }
+      }
+    }
   }
 }

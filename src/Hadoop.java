@@ -39,8 +39,12 @@ public abstract class Hadoop {
           }
           try {
             String data = dataLine.nextToken();
-            data = data.replaceAll("\\D+", "");
+            data = data.replaceAll("[^0-9.,]+", "");
             float val = Float.parseFloat(data);
+            if (val == (float) 9999.9 || val == (float) 999.9
+                || val == (float) 99.99) {
+              val = 0;
+            }
             i++;
             vals.set(val);
             context.write(title, vals);
