@@ -18,6 +18,7 @@ public abstract class Hadoop {
   private static ArrayList<Integer> paramSelect;
   private static HashMap<Integer, String> param =
       new HashMap<Integer, String>();
+  private static int month = 0;
 
   public static class TokenizerMapper
       extends Mapper<Object, Text, Text, FloatWritable> {
@@ -31,6 +32,20 @@ public abstract class Hadoop {
       while (line.hasMoreTokens()) {
         int i = 0;
         StringTokenizer dataLine = new StringTokenizer(line.nextToken());
+        if (month != 0) {
+          while (dataLine.hasMoreTokens() && i < 2) {
+            dataLine.nextToken();
+            i++;
+          }
+          try {
+            int m = Integer.parseInt(dataLine.nextToken().substring(4, 6));
+            i++;
+            if (m != month)
+              continue;
+          } catch (NumberFormatException e) {
+            continue;
+          }
+        }
         for (Integer p : paramSelect) {
           title.set(param.get(p));
           while (dataLine.hasMoreTokens() && i < p) {
@@ -41,10 +56,7 @@ public abstract class Hadoop {
             String data = dataLine.nextToken();
             data = data.replaceAll("[^0-9.,]+", "");
             float val = Float.parseFloat(data);
-            if (val == (float) 9999.9 || val == (float) 999.9
-                || val == (float) 99.99) {
-              val = 0;
-            }
+            val = verifyMissing(val, p);
             i++;
             vals.set(val);
             context.write(title, vals);
@@ -53,7 +65,21 @@ public abstract class Hadoop {
           }
         }
       }
+    }
 
+    public float verifyMissing(float val, int p) {
+      if (val == (float) 9999.9
+          && (p == 3 || p == 5 || p == 7 || p == 9 || p == 17 || p == 18)) {
+        return 0;
+      }
+      if (val == (float) 999.9
+          && (p == 11 || p == 13 || p == 15 || p == 16 || p == 20)) {
+        return 0;
+      }
+      if (val == (float) 99.99 && p == 20) {
+        return 0;
+      }
+      return val;
     }
   }
 
@@ -74,13 +100,14 @@ public abstract class Hadoop {
     }
   }
 
-  public static boolean executeMeanYear(int year1, int year2, String input,
-      String output, ArrayList<Integer> par) throws Exception {
+  public static boolean executeMean(int year1, int year2, int m,
+      String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
     }
     paramSelect = par;
     initializeParams();
+    month = m;
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "hadoop");
     job.setJarByClass(Index.class);
@@ -99,18 +126,18 @@ public abstract class Hadoop {
   }
 
   private static void initializeParams() {
-    param.put(3, "TEMP");
-    param.put(5, "DEWP");
-    param.put(7, "SLP");
-    param.put(9, "STP");
-    param.put(11, "VISIB");
-    param.put(13, "WDSP");
-    param.put(15, "MXSPD");
-    param.put(16, "GUST");
-    param.put(17, "MAX");
-    param.put(18, "MIN");
-    param.put(19, "PRCP");
-    param.put(20, "SNDP");
+    param.put(3, "TEMP"); // 9999.9
+    param.put(5, "DEWP"); // 9999.9
+    param.put(7, "SLP"); // 9999.9
+    param.put(9, "STP"); // 9999.9
+    param.put(11, "VISIB");// 999.9
+    param.put(13, "WDSP");// 999.9
+    param.put(15, "MXSPD");// 999.9
+    param.put(16, "GUST");// 999.9
+    param.put(17, "MAX"); // 9999.9
+    param.put(18, "MIN"); // 9999.9
+    param.put(19, "PRCP"); // 99.99
+    param.put(20, "SNDP");// 999.9
   }
 
   public static void deleteDir(File file) {

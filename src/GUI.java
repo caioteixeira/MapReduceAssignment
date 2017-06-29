@@ -30,6 +30,7 @@ public class GUI extends JFrame {
   private JComboBox<String> month;
   private int y1;
   private int y2;
+  private int m;
   private ArrayList<Integer> pars;
   private JPanel paneLoad;
   private JPanel contentPane;
@@ -196,7 +197,7 @@ public class GUI extends JFrame {
     showLoad();
     JOptionPane.showMessageDialog(null, "Start processing");
     try {
-      if (!Hadoop.executeMeanYear(y1, y2, input, output, pars)) {
+      if (!Hadoop.executeMean(y1, y2, m, input, output, pars)) {
         String[] buttons = { "Yes", "No" };
         int result = JOptionPane.showOptionDialog(null,
             "The output directory already exists. Would you like to erase it?",
@@ -236,7 +237,7 @@ public class GUI extends JFrame {
       JOptionPane.showMessageDialog(null, "Select one parameter");
       return false;
     }
-
+    m = month.getSelectedIndex();
     return true;
   }
 
