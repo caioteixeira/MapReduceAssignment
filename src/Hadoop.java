@@ -58,11 +58,13 @@ public abstract class Hadoop {
             i++;
           }
           try {
+            if (!dataLine.hasMoreTokens())
+              break;
             String data = dataLine.nextToken();
+            i++;
             data = data.replaceAll("[^0-9.,]+", "");
             float val = Float.parseFloat(data);
             val = verifyMissing(val, p);
-            i++;
             vals.set(val);
             context.write(title, vals);
           } catch (NumberFormatException e) {
@@ -179,12 +181,12 @@ public abstract class Hadoop {
     }
   }
 
-  public static boolean executeMean(int year1, int year2, int m, int dw,
+  public static boolean executeMean(int m, int dw,
       String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
     }
-    Job job = initializeJob(year1, year2, m, dw, input, output, par);
+    Job job = initializeJob(m, dw, input, output, par);
     job.setCombinerClass(MeanReducer.class);
     job.setReducerClass(MeanReducer.class);
 
@@ -192,19 +194,19 @@ public abstract class Hadoop {
     return true;
   }
 
-  public static boolean executeStdDev(int year1, int year2, int m, int dw,
+  public static boolean executeStdDev(int m, int dw,
       String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
     }
-    Job job = initializeJob(year1, year2, m, dw, input, output, par);
+    Job job = initializeJob(m, dw, input, output, par);
     job.setReducerClass(StdDevReducer.class);
 
     job.waitForCompletion(true);
     return true;
   }
 
-  public static Job initializeJob(int year1, int year2, int m, int dw,
+  public static Job initializeJob(int m, int dw,
       String input, String output, ArrayList<Integer> par) throws Exception {
     paramSelect = par;
     initializeParams();
@@ -216,10 +218,7 @@ public abstract class Hadoop {
     job.setMapperClass(TokenizerMapper.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(FloatWritable.class);
-    while (year1 <= year2) {
-      FileInputFormat.addInputPath(job, new Path(input + "/" + year1));
-      year1++;
-    }
+    FileInputFormat.addInputPath(job, new Path(input));
     FileOutputFormat.setOutputPath(job, new Path(output));
     return job;
   }

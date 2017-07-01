@@ -1,4 +1,3 @@
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,10 +12,15 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 public class GUI extends JFrame {
   private static final long serialVersionUID = 1L;
@@ -38,13 +42,13 @@ public class GUI extends JFrame {
   private ArrayList<Integer> pars;
   private JPanel paneLoad;
   private JPanel contentPane;
-  private String[][] data = new String[1][1];
-  private ArrayList<String> cols = new ArrayList<String>();
-  private JScrollPane tab;
-  private JTable table;
   private JComboBox<String> dayw;
+  private DefaultCategoryDataset ds;
+  private static float min = 999999;
+  private static float max = 0;
 
-  public GUI(String input, String output) {
+  public GUI(String input, String output, DefaultCategoryDataset ds) {
+    this.ds = ds;
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setBounds(100, 100, 600, 410);
     setResizable(false);
@@ -65,7 +69,7 @@ public class GUI extends JFrame {
 
     paneLoad.setVisible(false);
 
-    fillTableResult(output);
+    createGraph();
 
     JLabel parame = new JLabel("Parameters:");
     parame.setFont(new Font("Tahoma", Font.BOLD, 14));
@@ -115,26 +119,10 @@ public class GUI extends JFrame {
     dayw.setBounds(460, 30, 90, 30);
     contentPane.add(dayw);
 
-    table = new JTable(data, cols.toArray()) {
-      private static final long serialVersionUID = 1L;
-
-      public boolean isCellEditable(int row, int col) {
-        return false;
-      }
-    };
-    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-    table.setFont(new Font("Tahoma", Font.PLAIN, 16));
-    table.setBorder(new LineBorder(Color.LIGHT_GRAY));
-    table.setBackground(Color.WHITE);
-    tab = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-        JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    tab.setBounds(160, 70, 430, 280);
-    contentPane.add(tab);
-
     JButton btnStdDev = new JButton("Standard Deviation");
     btnStdDev.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent arg0) {
-        executeStdDev(input, output);
+        execute(input, output, 2);
       }
     });
 
@@ -145,7 +133,7 @@ public class GUI extends JFrame {
     JButton btnMean = new JButton("Mean");
     btnMean.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent arg0) {
-        executeMean(input, output);
+        execute(input, output, 1);
       }
     });
 
@@ -217,46 +205,39 @@ public class GUI extends JFrame {
     pane.add(param[20]);
   }
 
-  public void executeMean(String input, String output) {
+  public void execute(String input, String output, int f) {
     if (!verifData())
       return;
     showLoad();
+    ds = new DefaultCategoryDataset();
+    min = 999999;
+    max = 0;
     JOptionPane.showMessageDialog(null, "Start processing");
     try {
-      if (!Hadoop.executeMean(y1, y2, m, dw, input, output, pars)) {
-        if (errorFileExists() == 0) {
+      while (y1 <= y2) {
+        boolean res = true;
+        if (f == 1)
+          res = Hadoop.executeMean(m, dw, input + "/" + y1, output, pars);
+        else if (f == 2)
+          res = Hadoop.executeStdDev(m, dw, input + "/" + y1, output, pars);
+        if (!res) {
+          if (errorFileExists() == 0) {
+            Hadoop.deleteDir(new File(output));
+            execute(input, output, f);
+            return;
+          }
+        } else {
+          y1++;
+          saveData(output);
           Hadoop.deleteDir(new File(output));
-          executeMean(input, output);
-          return;
         }
       }
+      createGraph();
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, "Error during processing");
       e.printStackTrace();
     }
-    GUI frame = new GUI(input, output);
-    frame.setVisible(true);
-    dispose();
-  }
-
-  public void executeStdDev(String input, String output) {
-    if (!verifData())
-      return;
-    showLoad();
-    JOptionPane.showMessageDialog(null, "Start processing");
-    try {
-      if (!Hadoop.executeStdDev(y1, y2, m, dw, input, output, pars)) {
-        if (errorFileExists() == 0) {
-          Hadoop.deleteDir(new File(output));
-          executeStdDev(input, output);
-          return;
-        }
-      }
-    } catch (Exception e) {
-      JOptionPane.showMessageDialog(null, "Error during processing");
-      e.printStackTrace();
-    }
-    GUI frame = new GUI(input, output);
+    GUI frame = new GUI(input, output, ds);
     frame.setVisible(true);
     dispose();
   }
@@ -272,7 +253,7 @@ public class GUI extends JFrame {
     y1 = (Integer) yearI.getSelectedItem();
     y2 = (Integer) yearII.getSelectedItem();
 
-    if (y1 > y2) {
+    if (y1 >= y2) {
       JOptionPane.showMessageDialog(null, "Period incorrect");
       return false;
     }
@@ -299,41 +280,36 @@ public class GUI extends JFrame {
     setContentPane(paneLoad);
   }
 
-  private void fillTableResult(String output) {
+  private void saveData(String output) {
     if (!new File(output + "/part-r-00000").exists()) {
       return;
     }
     TextReader read = new TextReader(output + "/part-r-00000");
     String lres = read.readLine(1);
-    String aux = lres;
-    StringTokenizer d;
     while (lres != null) {
-      d = new StringTokenizer(lres);
-      if (d.hasMoreTokens()) {
-        cols.add(d.nextToken());
+      StringTokenizer d = new StringTokenizer(lres);
+      String title = d.nextToken();
+      float n = Float.parseFloat(d.nextToken());
+      if (n < min) {
+        min = n - 3;
       }
+      if (n > max) {
+        max = n + 3;
+      }
+      ds.addValue((Number) n, title, y1);
       lres = read.readLine(1);
     }
-    read.closeReader();
-    
-    read.openNewFile(output + "/part-r-00000");
-    if (aux == null)
-      return;
-    d = new StringTokenizer(aux);
-    data = new String[d.countTokens() - 1][cols.size()];
-    for (int i = 0; i < data[0].length; i++) {
-      int j = 0;
-      d = new StringTokenizer(read.readLine(1));
-      while (j < data.length) {
-        try {
-          String n = d.nextToken();
-          n = String.format("%.3f", Float.parseFloat(n));
-          data[j][i] = n;
-          j++;
-        } catch (NumberFormatException e) {
-          continue;
-        }
-      }
-    }
+  }
+
+  private void createGraph() {
+    JFreeChart graph = ChartFactory.createLineChart(null, null, null, ds,
+        PlotOrientation.VERTICAL, true, true, false);
+    CategoryPlot plot = (CategoryPlot) graph.getPlot();
+    ValueAxis yAxis = plot.getRangeAxis();
+    if (min < max)
+      yAxis.setRange(min, max);
+    ChartPanel cp = new ChartPanel(graph);
+    cp.setBounds(160, 70, 430, 290);
+    contentPane.add(cp);
   }
 }
