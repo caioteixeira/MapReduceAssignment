@@ -214,23 +214,22 @@ public class GUI extends JFrame {
     max = 0;
     JOptionPane.showMessageDialog(null, "Start processing");
     try {
-      while (y1 <= y2) {
-        boolean res = true;
-        if (f == 1)
-          res = Hadoop.executeMean(m, dw, input + "/" + y1, output, pars);
-        else if (f == 2)
-          res = Hadoop.executeStdDev(m, dw, input + "/" + y1, output, pars);
-        if (!res) {
-          if (errorFileExists() == 0) {
-            Hadoop.deleteDir(new File(output));
-            execute(input, output, f);
-            return;
-          }
-        } else {
-          y1++;
-          saveData(output);
+      boolean res = true;
+      if (f == 1)
+        res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
+      else if (f == 2)
+        return;
+      // res = Hadoop.executeStdDev(m, dw, input, output, pars);
+      if (!res) {
+        if (errorFileExists() == 0) {
           Hadoop.deleteDir(new File(output));
+          execute(input, output, f);
+          return;
         }
+      } else {
+        y1++;
+        saveData(output);
+        Hadoop.deleteDir(new File(output));
       }
       createGraph();
     } catch (Exception e) {
@@ -253,7 +252,7 @@ public class GUI extends JFrame {
     y1 = (Integer) yearI.getSelectedItem();
     y2 = (Integer) yearII.getSelectedItem();
 
-    if (y1 >= y2) {
+    if (y1 > y2) {
       JOptionPane.showMessageDialog(null, "Period incorrect");
       return false;
     }
