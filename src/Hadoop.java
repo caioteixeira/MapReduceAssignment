@@ -30,19 +30,20 @@ public abstract class Hadoop {
 
     private final static FloatWritable vals = new FloatWritable();
     private Text title = new Text();
-    private int i;
+
 
     public void map(Object key, Text value, Context context)
         throws IOException, InterruptedException {
       StringTokenizer line = new StringTokenizer(value.toString(), "\n");
       while (line.hasMoreTokens()) {
-        i = 0;
+        int i = 0;
         StringTokenizer dataLine = new StringTokenizer(line.nextToken());
         while (dataLine.hasMoreTokens() && i < 2) {
           dataLine.nextToken();
           i++;
         }
         String date = dataLine.nextToken();
+        i++;
         if (month != 0) {
           if (!monthCorrect(date))
             continue;
@@ -76,7 +77,6 @@ public abstract class Hadoop {
         int dw = 0;
         try {
           dw = getDayWeek(date);
-          i++;
         } catch (ParseException e) {
           return false;
         }
@@ -89,7 +89,6 @@ public abstract class Hadoop {
     public boolean monthCorrect(String date) {
       try {
         int m = Integer.parseInt(date.substring(4, 6));
-        i++;
         if (m != month)
           return false;
 
@@ -142,11 +141,71 @@ public abstract class Hadoop {
     }
   }
 
+  public static class StdDevReducer
+      extends Reducer<Text, FloatWritable, Text, FloatWritable> {
+    private FloatWritable result = new FloatWritable();
+
+    public void reduce(Text key, Iterable<FloatWritable> values,
+        Context context) throws IOException, InterruptedException {
+      ArrayList<Float> vals = new ArrayList<Float>();
+      float sd = (float) Math.sqrt(getVariance(values, vals));
+      result.set(sd);
+      context.write(key, result);
+    }
+
+    public double getVariance(Iterable<FloatWritable> values,
+        ArrayList<Float> vals) {
+      float sum = 0;
+      int length = 0;
+      float mean = getMean(values, vals);
+      for (float val : vals) {
+        sum += (val - mean) * (val - mean);
+        length++;
+      }
+
+      return (sum / (length - 1));
+    }
+
+    public float getMean(Iterable<FloatWritable> values,
+        ArrayList<Float> vals) {
+      float sum = 0;
+      int length = 0;
+      for (FloatWritable val : values) {
+        vals.add(val.get());
+        sum += val.get();
+        length++;
+      }
+      return (sum / length);
+    }
+  }
+
   public static boolean executeMean(int year1, int year2, int m, int dw,
       String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
     }
+    Job job = initializeJob(year1, year2, m, dw, input, output, par);
+    job.setCombinerClass(MeanReducer.class);
+    job.setReducerClass(MeanReducer.class);
+
+    job.waitForCompletion(true);
+    return true;
+  }
+
+  public static boolean executeStdDev(int year1, int year2, int m, int dw,
+      String input, String output, ArrayList<Integer> par) throws Exception {
+    if (new File(output).exists()) {
+      return false;
+    }
+    Job job = initializeJob(year1, year2, m, dw, input, output, par);
+    job.setReducerClass(StdDevReducer.class);
+
+    job.waitForCompletion(true);
+    return true;
+  }
+
+  public static Job initializeJob(int year1, int year2, int m, int dw,
+      String input, String output, ArrayList<Integer> par) throws Exception {
     paramSelect = par;
     initializeParams();
     month = m;
@@ -155,8 +214,6 @@ public abstract class Hadoop {
     Job job = Job.getInstance(conf, "hadoop");
     job.setJarByClass(Index.class);
     job.setMapperClass(TokenizerMapper.class);
-    job.setCombinerClass(MeanReducer.class);
-    job.setReducerClass(MeanReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(FloatWritable.class);
     while (year1 <= year2) {
@@ -164,8 +221,7 @@ public abstract class Hadoop {
       year1++;
     }
     FileOutputFormat.setOutputPath(job, new Path(output));
-    job.waitForCompletion(true);
-    return true;
+    return job;
   }
 
   private static void initializeParams() {

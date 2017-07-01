@@ -131,6 +131,17 @@ public class GUI extends JFrame {
     tab.setBounds(160, 70, 430, 280);
     contentPane.add(tab);
 
+    JButton btnStdDev = new JButton("Standard Deviation");
+    btnStdDev.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent arg0) {
+        executeStdDev(input, output);
+      }
+    });
+
+    btnStdDev.setFont(new Font("Tahoma", Font.PLAIN, 10));
+    btnStdDev.setBounds(300, 365, 140, 30);
+    contentPane.add(btnStdDev);
+
     JButton btnMean = new JButton("Mean");
     btnMean.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent arg0) {
@@ -213,11 +224,7 @@ public class GUI extends JFrame {
     JOptionPane.showMessageDialog(null, "Start processing");
     try {
       if (!Hadoop.executeMean(y1, y2, m, dw, input, output, pars)) {
-        String[] buttons = { "Yes", "No" };
-        int result = JOptionPane.showOptionDialog(null,
-            "The output directory already exists. Would you like to erase it?",
-            "Error", JOptionPane.WARNING_MESSAGE, 0, null, buttons, buttons[1]);
-        if (result == 0) {
+        if (errorFileExists() == 0) {
           Hadoop.deleteDir(new File(output));
           executeMean(input, output);
           return;
@@ -230,6 +237,35 @@ public class GUI extends JFrame {
     GUI frame = new GUI(input, output);
     frame.setVisible(true);
     dispose();
+  }
+
+  public void executeStdDev(String input, String output) {
+    if (!verifData())
+      return;
+    showLoad();
+    JOptionPane.showMessageDialog(null, "Start processing");
+    try {
+      if (!Hadoop.executeStdDev(y1, y2, m, dw, input, output, pars)) {
+        if (errorFileExists() == 0) {
+          Hadoop.deleteDir(new File(output));
+          executeStdDev(input, output);
+          return;
+        }
+      }
+    } catch (Exception e) {
+      JOptionPane.showMessageDialog(null, "Error during processing");
+      e.printStackTrace();
+    }
+    GUI frame = new GUI(input, output);
+    frame.setVisible(true);
+    dispose();
+  }
+
+  public int errorFileExists() {
+    String[] buttons = { "Yes", "No" };
+    return JOptionPane.showOptionDialog(null,
+        "The output directory already exists. Would you like to erase it?",
+        "Error", JOptionPane.WARNING_MESSAGE, 0, null, buttons, buttons[1]);
   }
 
   private boolean verifData() {
