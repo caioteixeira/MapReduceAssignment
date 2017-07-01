@@ -30,51 +30,25 @@ public abstract class Hadoop {
 
     private final static FloatWritable vals = new FloatWritable();
     private Text title = new Text();
+    private int i;
 
     public void map(Object key, Text value, Context context)
         throws IOException, InterruptedException {
       StringTokenizer line = new StringTokenizer(value.toString(), "\n");
       while (line.hasMoreTokens()) {
-        int i = 0;
+        i = 0;
         StringTokenizer dataLine = new StringTokenizer(line.nextToken());
+        while (dataLine.hasMoreTokens() && i < 2) {
+          dataLine.nextToken();
+          i++;
+        }
+        String date = dataLine.nextToken();
         if (month != 0) {
-          while (dataLine.hasMoreTokens() && i < 2) {
-            dataLine.nextToken();
-            i++;
-          }
-          try {
-            String date = dataLine.nextToken();
-            int m = Integer.parseInt(date.substring(4, 6));
-            i++;
-            if (m != month)
-              continue;
-            int dw = 0;
-            if (dayW != 0) {
-              dw = getDayWeek(date);
-              if (dayW != dw)
-                continue;
-            }
-          } catch (NumberFormatException | ParseException e) {
+          if (!monthCorrect(date))
             continue;
-          }
         } else {
-          int dw = 0;
-          if (dayW != 0) {
-            while (dataLine.hasMoreTokens() && i < 2) {
-              dataLine.nextToken();
-              i++;
-            }
-
-            String date = dataLine.nextToken();
-            try {
-              dw = getDayWeek(date);
-              i++;
-            } catch (ParseException e) {
-              continue;
-            }
-            if (dayW != dw)
-              continue;
-          }
+          if (!dayOfWeekCorrect(date))
+            continue;
         }
         for (Integer p : paramSelect) {
           title.set(param.get(p));
@@ -95,6 +69,36 @@ public abstract class Hadoop {
           }
         }
       }
+    }
+
+    public boolean dayOfWeekCorrect(String date) {
+      if (dayW != 0) {
+        int dw = 0;
+        try {
+          dw = getDayWeek(date);
+          i++;
+        } catch (ParseException e) {
+          return false;
+        }
+        if (dayW != dw)
+          return false;
+      }
+      return true;
+    }
+
+    public boolean monthCorrect(String date) {
+      try {
+        int m = Integer.parseInt(date.substring(4, 6));
+        i++;
+        if (m != month)
+          return false;
+
+        if (!dayOfWeekCorrect(date))
+          return false;
+      } catch (NumberFormatException e) {
+        return false;
+      }
+      return true;
     }
 
     public int getDayWeek(String date) throws ParseException {
@@ -130,7 +134,6 @@ public abstract class Hadoop {
       float sum = 0;
       int length = 0;
         for (FloatWritable val : values) {
-        System.out.println(val.get());
           sum += val.get();
           length++;
         }
