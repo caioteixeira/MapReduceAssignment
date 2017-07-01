@@ -25,12 +25,16 @@ public class GUI extends JFrame {
   private String[] months =
       { "All", "January", "February", "March", "April", "May", "June", "July",
           "August", "September", "October", "November", "December" };
+  private String[] week =
+      { "All", "Sunday", "Monday", "Tesday", "Wednesday", "Thursday", "Friday",
+          "Saturday" };
   private JComboBox<Object> yearI;
   private JComboBox<Object> yearII;
   private JComboBox<String> month;
   private int y1;
   private int y2;
   private int m;
+  private int dw;
   private ArrayList<Integer> pars;
   private JPanel paneLoad;
   private JPanel contentPane;
@@ -38,6 +42,7 @@ public class GUI extends JFrame {
   private ArrayList<String> cols = new ArrayList<String>();
   private JScrollPane tab;
   private JTable table;
+  private JComboBox<String> dayw;
 
   public GUI(String input, String output) {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -99,6 +104,16 @@ public class GUI extends JFrame {
     month.setFont(new Font("Tahoma", Font.PLAIN, 10));
     month.setBounds(350, 30, 90, 30);
     contentPane.add(month);
+
+    JLabel wek = new JLabel("Day Week:");
+    wek.setFont(new Font("Tahoma", Font.BOLD, 14));
+    wek.setBounds(464, 5, 100, 18); // setBounds(x, y, largura, altura)
+    contentPane.add(wek);
+
+    dayw = new JComboBox<String>(week);
+    dayw.setFont(new Font("Tahoma", Font.PLAIN, 10));
+    dayw.setBounds(460, 30, 90, 30);
+    contentPane.add(dayw);
 
     table = new JTable(data, cols.toArray()) {
       private static final long serialVersionUID = 1L;
@@ -197,7 +212,7 @@ public class GUI extends JFrame {
     showLoad();
     JOptionPane.showMessageDialog(null, "Start processing");
     try {
-      if (!Hadoop.executeMean(y1, y2, m, input, output, pars)) {
+      if (!Hadoop.executeMean(y1, y2, m, dw, input, output, pars)) {
         String[] buttons = { "Yes", "No" };
         int result = JOptionPane.showOptionDialog(null,
             "The output directory already exists. Would you like to erase it?",
@@ -238,6 +253,7 @@ public class GUI extends JFrame {
       return false;
     }
     m = month.getSelectedIndex();
+    dw = dayw.getSelectedIndex();
     return true;
   }
 

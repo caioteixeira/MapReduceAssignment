@@ -1,6 +1,10 @@
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
@@ -19,6 +23,7 @@ public abstract class Hadoop {
   private static HashMap<Integer, String> param =
       new HashMap<Integer, String>();
   private static int month = 0;
+  private static int dayW = 0;
 
   public static class TokenizerMapper
       extends Mapper<Object, Text, Text, FloatWritable> {
@@ -38,12 +43,37 @@ public abstract class Hadoop {
             i++;
           }
           try {
-            int m = Integer.parseInt(dataLine.nextToken().substring(4, 6));
+            String date = dataLine.nextToken();
+            int m = Integer.parseInt(date.substring(4, 6));
             i++;
             if (m != month)
               continue;
-          } catch (NumberFormatException e) {
+            int dw = 0;
+            if (dayW != 0) {
+              dw = getDayWeek(date);
+              if (dayW != dw)
+                continue;
+            }
+          } catch (NumberFormatException | ParseException e) {
             continue;
+          }
+        } else {
+          int dw = 0;
+          if (dayW != 0) {
+            while (dataLine.hasMoreTokens() && i < 2) {
+              dataLine.nextToken();
+              i++;
+            }
+
+            String date = dataLine.nextToken();
+            try {
+              dw = getDayWeek(date);
+              i++;
+            } catch (ParseException e) {
+              continue;
+            }
+            if (dayW != dw)
+              continue;
           }
         }
         for (Integer p : paramSelect) {
@@ -65,6 +95,14 @@ public abstract class Hadoop {
           }
         }
       }
+    }
+
+    public int getDayWeek(String date) throws ParseException {
+      Calendar c = Calendar.getInstance();
+      SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+      Date dt = format.parse(date);
+      c.setTime(dt);
+      return c.get(Calendar.DAY_OF_WEEK);
     }
 
     public float verifyMissing(float val, int p) {
@@ -92,6 +130,7 @@ public abstract class Hadoop {
       float sum = 0;
       int length = 0;
         for (FloatWritable val : values) {
+        System.out.println(val.get());
           sum += val.get();
           length++;
         }
@@ -100,7 +139,7 @@ public abstract class Hadoop {
     }
   }
 
-  public static boolean executeMean(int year1, int year2, int m,
+  public static boolean executeMean(int year1, int year2, int m, int dw,
       String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
@@ -108,6 +147,7 @@ public abstract class Hadoop {
     paramSelect = par;
     initializeParams();
     month = m;
+    dayW = dw;
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "hadoop");
     job.setJarByClass(Index.class);
