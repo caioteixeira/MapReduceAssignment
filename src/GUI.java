@@ -218,8 +218,7 @@ public class GUI extends JFrame {
       if (f == 1)
         res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
       else if (f == 2)
-        return;
-      // res = Hadoop.executeStdDev(m, dw, input, output, pars);
+        res = Hadoop.executeStdDev(m, dw, y1, y2, input, output, pars);
       if (!res) {
         if (errorFileExists() == 0) {
           Hadoop.deleteDir(new File(output));

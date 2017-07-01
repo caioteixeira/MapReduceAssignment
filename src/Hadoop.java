@@ -134,8 +134,8 @@ public abstract class Hadoop {
       extends Reducer<Text, MapWritable, Text, MapWritable> {
     private MapWritable result = new MapWritable();
 
-    HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
-    HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
+    private HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
+    private HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
 
     public void reduce(Text key, Iterable<MapWritable> values, Context context)
         throws IOException, InterruptedException {
@@ -169,63 +169,102 @@ public abstract class Hadoop {
     }
   }
 
-  /*
-   * public static class StdDevReducer extends Reducer<Text, FloatWritable,
-   * Text, FloatWritable> { private FloatWritable result = new FloatWritable();
-   * 
-   * public void reduce(Text key, Iterable<FloatWritable> values, Context
-   * context) throws IOException, InterruptedException { ArrayList<Float> vals =
-   * new ArrayList<Float>(); float sd = (float) Math.sqrt(getVariance(values,
-   * vals)); result.set(sd); context.write(key, result); }
-   * 
-   * public double getVariance(Iterable<FloatWritable> values, ArrayList<Float>
-   * vals) { float sum = 0; int length = 0; float mean = getMean(values, vals);
-   * for (float val : vals) { sum += (val - mean) * (val - mean); length++; }
-   * 
-   * return (sum / (length - 1)); }
-   * 
-   * public float getMean(Iterable<FloatWritable> values, ArrayList<Float> vals)
-   * { float sum = 0; int length = 0; for (FloatWritable val : values) {
-   * vals.add(val.get()); sum += val.get(); length++; } return (sum / length); }
-   * }
-   */
+  public static class StdDevReducer
+      extends Reducer<Text, MapWritable, Text, MapWritable> {
+    private MapWritable result = new MapWritable();
+
+    private HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
+    private HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
+
+    public void reduce(Text key, Iterable<MapWritable> values,
+        Context context) throws IOException, InterruptedException {
+      int year1 = 0;
+      ArrayList<Float> vals = new ArrayList<Float>();
+      for (MapWritable val : values) {
+        year1 = y1;
+        while (year1 <= y2) {
+          if (val.get(new IntWritable(year1)) == null) {
+            year1++;
+            continue;
+          }
+          float value = ((FloatWritable) val.get(new IntWritable(year1))).get();
+          vals.add(value);
+          if (sum.get(year1) == null) {
+            sum.put(year1, value);
+            length.put(year1, 1);
+          } else {
+            sum.put(year1, sum.get(year1) + value);
+            length.put(year1, length.get(year1) + 1);
+          }
+          year1++;
+        }
+      }
+      
+      year1 = y1;
+      while (year1 <= y2) {
+        double mean = (sum.get(year1) / length.get(year1));
+        System.out.println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm: " + mean);
+        float std = (float) Math.sqrt(getVariance(vals, mean, year1));
+        result.put(new IntWritable(year1), new FloatWritable(std));
+        year1++;
+      }
+
+      context.write(key, result);
+    }
+
+    public Double getVariance(ArrayList<Float> vals, double mean, int y) {
+      double sum = 0;
+      int length = 0;
+      for (float val : vals) {
+        sum += (val - mean) * (val - mean);
+        length++;
+      }
+      return (sum / (length - 1));
+    }
+
+  }
+
   public static boolean executeMean(int m, int dw, int year1, int year2,
       String input, String output, ArrayList<Integer> par) throws Exception {
     if (new File(output).exists()) {
       return false;
     }
-    y1 = year1;
-    y2 = year2;
-    Job job = initializeJob(m, dw, y1, y2, input, output, par);
+    Job job = initializeJob(m, dw, year1, year2, input, output, par);
     job.setReducerClass(MeanReducer.class);
 
     job.waitForCompletion(true);
     return true;
   }
 
-  /*
-   * public static boolean executeStdDev(int m, int dw, String input, String
-   * output, ArrayList<Integer> par) throws Exception { if (new
-   * File(output).exists()) { return false; } Job job = initializeJob(m, dw,
-   * input, output, par); job.setReducerClass(StdDevReducer.class);
-   * 
-   * job.waitForCompletion(true); return true; }
-   */
-  public static Job initializeJob(int m, int dw, int y1, int y2,
+  public static boolean executeStdDev(int m, int dw, int year1, int year2,
+      String input, String output, ArrayList<Integer> par) throws Exception {
+    if (new File(output).exists()) {
+      return false;
+    }
+    Job job = initializeJob(m, dw, year1, year2, input, output, par);
+    job.setReducerClass(StdDevReducer.class);
+  
+    job.waitForCompletion(true);
+    return true;
+  }
+
+  public static Job initializeJob(int m, int dw, int year1, int year2,
       String input, String output, ArrayList<Integer> par) throws Exception {
     paramSelect = par;
     initializeParams();
     month = m;
     dayW = dw;
+    y1 = year1;
+    y2 = year2;
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "hadoop");
     job.setJarByClass(Index.class);
     job.setMapperClass(TokenizerMapper.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(MapWritable.class);
-    while (y1 <= y2) {
-      FileInputFormat.addInputPath(job, new Path(input + "/" + y1));
-      y1++;
+    while (year1 <= y2) {
+      FileInputFormat.addInputPath(job, new Path(input + "/" + year1));
+      year1++;
     }
     FileOutputFormat.setOutputPath(job, new Path(output));
     return job;
