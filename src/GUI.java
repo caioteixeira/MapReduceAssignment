@@ -87,15 +87,13 @@ public class GUI extends JFrame {
 
     Configuration conf = new Configuration();
     try {
-    FileSystem fs = FileSystem.get(conf);
-    
-    for (Integer i = 1901; i <= 2017; i++) {
-      String pathStr = i.toString();
-      Path path = new Path(pathStr);
-      if(fs.isDirectory(path))
-      {
-        years.add(i);
-      }
+      FileSystem fs = FileSystem.get(conf);
+
+      for (Integer i = 1901; i <= 2017; i++) {
+        Path path = new Path(input);
+        if (fs.isDirectory(path)) {
+          years.add(i);
+        }
       }
     } catch (IOException e) {
       // TODO Auto-generated catch block
