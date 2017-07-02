@@ -247,7 +247,7 @@ public class GUI extends JFrame {
       boolean res = true;
       if (f == 1)
       {
-        res = Hadoop.executeMinimumSquare(m, dw, y1, y2, input, output, pars);
+        res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
       }
       else if (f == 2)
       {
@@ -255,7 +255,7 @@ public class GUI extends JFrame {
       }
       else if (f == 3)
       {
-    	  res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
+    	  res = Hadoop.executeMinimumSquare(m, dw, y1, y2, input, output, pars);
       }
       
       if (!res) {
@@ -266,7 +266,15 @@ public class GUI extends JFrame {
         }
       } else {
         y1++;
-        saveData(output);
+        
+        if(f == 3)
+        {
+        	//Minimum Sqr
+        }
+        else
+        {
+        	saveData(output);
+        }
       }
       createGraph();
     } catch (Exception e) {
@@ -365,4 +373,43 @@ public class GUI extends JFrame {
     cp.setBounds(160, 70, 580, 340);
     contentPane.add(cp);
   }
+  
+//  private void saveMinimumSquareData(String output)
+//  {
+//	if (!new File(output + "/part-r-00000").exists()) {
+//	      return;
+//    }
+//    TextReader read = new TextReader(output + "/part-r-00000");
+//    String lres = read.readLine(1);
+//    while (lres != null) {
+//      HashMap<Integer, Float> vals = new HashMap<Integer, Float>();
+//      StringTokenizer d = new StringTokenizer(lres);
+//      String title = d.nextToken();
+//      int pos1 = lres.indexOf('{');
+//      int pos2 = lres.indexOf('}');
+//      String s1 = lres.substring(pos1 + 1, pos2);
+//      String[] s2 = s1.split(",");
+//      for (int i = 0; i < s2.length; i++) {
+//        String[] s3 = s2[i].split("=");
+//        s3[0] = s3[0].replaceAll("[^0-9.,]+", "");
+//        s3[1] = s3[1].replaceAll("[^0-9.,]+", "");
+//        int y = Integer.parseInt(s3[0]);
+//        float n = Float.parseFloat(s3[1]);
+//        if (n < min) {
+//          min = n - 3;
+//        }
+//        if (n > max) {
+//          max = n + 3;
+//        }
+//        vals.put(y, n);
+//      }
+//      int year1 = y1 - 1;
+//      while (year1 <= y2) {
+//        ds.addValue((Number) vals.get(year1), title, year1);
+//        year1++;
+//      }
+//      lres = read.readLine(1);
+//    }
+//    read.closeReader();
+//  }
 }
