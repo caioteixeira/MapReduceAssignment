@@ -32,7 +32,7 @@ public abstract class Hadoop {
   public static class TokenizerMapper
       extends Mapper<Object, Text, Text, MapWritable> {
 
-    private final static MapWritable vals = new MapWritable();
+    private final MapWritable vals = new MapWritable();
     private Text title = new Text();
 
     public void map(Object key, Text value, Context context)
@@ -134,11 +134,10 @@ public abstract class Hadoop {
       extends Reducer<Text, MapWritable, Text, MapWritable> {
     private MapWritable result = new MapWritable();
 
-    private HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
-    private HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
-
     public void reduce(Text key, Iterable<MapWritable> values, Context context)
         throws IOException, InterruptedException {
+      HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
+      HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
       int year1 = 0;
       for (MapWritable val : values) {
         year1 = y1;
@@ -148,6 +147,7 @@ public abstract class Hadoop {
             continue;
           }
           float value = ((FloatWritable) val.get(new IntWritable(year1))).get();
+
           if (sum.get(year1) == null) {
             sum.put(year1, value);
             length.put(year1, 1);
@@ -158,7 +158,7 @@ public abstract class Hadoop {
           year1++;
         }
       }
-      
+
       year1 = y1;
       while (year1 <= y2) {
         result.put(new IntWritable(year1),
@@ -173,13 +173,15 @@ public abstract class Hadoop {
       extends Reducer<Text, MapWritable, Text, MapWritable> {
     private MapWritable result = new MapWritable();
 
-    private HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
-    private HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
-
     public void reduce(Text key, Iterable<MapWritable> values,
         Context context) throws IOException, InterruptedException {
+      HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
+      HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
+      HashMap<Integer, ArrayList<Float>> vals =
+          new HashMap<Integer, ArrayList<Float>>();
+
       int year1 = 0;
-      ArrayList<Float> vals = new ArrayList<Float>();
+
       for (MapWritable val : values) {
         year1 = y1;
         while (year1 <= y2) {
@@ -188,23 +190,25 @@ public abstract class Hadoop {
             continue;
           }
           float value = ((FloatWritable) val.get(new IntWritable(year1))).get();
-          vals.add(value);
           if (sum.get(year1) == null) {
             sum.put(year1, value);
             length.put(year1, 1);
+            vals.put(year1, new ArrayList<Float>());
+            vals.get(year1).add(value);
           } else {
             sum.put(year1, sum.get(year1) + value);
             length.put(year1, length.get(year1) + 1);
+            vals.get(year1).add(value);
           }
           year1++;
         }
       }
-      
+
       year1 = y1;
       while (year1 <= y2) {
         double mean = (sum.get(year1) / length.get(year1));
-        System.out.println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm: " + mean);
-        float std = (float) Math.sqrt(getVariance(vals, mean, year1));
+        float std =
+            (float) Math.sqrt(getVariance(vals.get(year1), mean, year1));
         result.put(new IntWritable(year1), new FloatWritable(std));
         year1++;
       }
@@ -243,7 +247,7 @@ public abstract class Hadoop {
     }
     Job job = initializeJob(m, dw, year1, year2, input, output, par);
     job.setReducerClass(StdDevReducer.class);
-  
+
     job.waitForCompletion(true);
     return true;
   }
@@ -295,3 +299,4 @@ public abstract class Hadoop {
     file.delete();
   }
 }
+
