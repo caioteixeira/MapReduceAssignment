@@ -253,23 +253,24 @@ public abstract class Hadoop {
 	          do
 	          {
 	        	  entry = val.get(new IntWritable(year));
-	        	  year++;
-	          } while(entry == null && year <= y2);
+	          } while(entry == null && ++year <= y2);
 	  	      
 	  	      if( entry == null)
 	  	      {
 	  	    	  continue;
 	  	      }
-	  	      year--;
 	  	      
 	  	      float value = ((FloatWritable) entry).get();
-	  	      xVals.add((float) year);
+	  	      //Distance from first year
+	  	      xVals.add((float) year - y1);
 	  	      yVals.add(value);
 	      }
 
 	      
 	      float xMean = computeMean(xVals);
+  	      System.out.println("xMean" + xMean);
 	      float yMean = computeMean(yVals);
+	      System.out.println("yMean" + yMean);
 	      double minimumSquareB =
 	          computeMinimumSquareB(xVals, yVals, xMean, yMean);
 	        

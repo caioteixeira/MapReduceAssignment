@@ -301,6 +301,12 @@ public class GUI extends JFrame {
       JOptionPane.showMessageDialog(null, "Period incorrect");
       return false;
     }
+    
+    if(y1 == y2)
+    {
+    	JOptionPane.showMessageDialog(null, "Please select two different years!");
+    	return false;
+    }
 
     pars = new ArrayList<Integer>();
     for (int i = 0; i < param.length; i++) {
@@ -402,10 +408,10 @@ public class GUI extends JFrame {
       int year1 = y1 - 1;
       //Predict two years
       for (int year = year1; year <= y2 + 2; year++) {
-    	double value = a + b * year;
+    	double value = a + b * (year - y1);
     	
     	if (value > max) {
-    		max = value + 3 * b;
+    		max = value + 4;
         }
     	
     	if(value < min)
@@ -413,8 +419,7 @@ public class GUI extends JFrame {
     		min = value - b;
     	}
     	
-        ds.addValue((Number) value, title, year1);
-        year1++;
+        ds.addValue((Number) value, title, year);
       }
       lres = read.readLine(1);
     }
