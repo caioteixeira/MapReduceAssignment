@@ -2,6 +2,7 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -14,6 +15,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -79,10 +83,24 @@ public class GUI extends JFrame {
     parametres(contentPane);
 
     years = new ArrayList<Integer>();
-
-    for (int i = 1929; i < 1931; i++) {
-      years.add(i);
-    }
+    
+    Configuration conf = new Configuration();
+    try {
+		FileSystem fs = FileSystem.get(conf);
+		
+		for (Integer i = 1901; i <= 2017; i++) {
+			String pathStr = i.toString();
+			Path path = new Path(pathStr);
+			if(fs.isDirectory(path))
+			{
+				years.add(i);
+			}
+	    }
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+		System.out.println("Unable to read input from HDFS!");
+	}
 
     JLabel period = new JLabel("Period:");
     period.setFont(new Font("Tahoma", Font.BOLD, 14));
