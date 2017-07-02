@@ -161,6 +161,10 @@ public abstract class Hadoop {
 
       year1 = y1;
       while (year1 <= y2) {
+        if (sum.get(year1) == null) {
+          year1++;
+          continue;
+        }
         result.put(new IntWritable(year1),
             new FloatWritable((sum.get(year1) / length.get(year1))));
         year1++;
@@ -206,6 +210,10 @@ public abstract class Hadoop {
 
       year1 = y1;
       while (year1 <= y2) {
+        if (sum.get(year1) == null) {
+          year1++;
+          continue;
+        }
         double mean = (sum.get(year1) / length.get(year1));
         float std =
             (float) Math.sqrt(getVariance(vals.get(year1), mean, year1));
@@ -267,6 +275,9 @@ public abstract class Hadoop {
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(MapWritable.class);
     while (year1 <= y2) {
+      if (!new File(input + "/" + year1).exists()) {
+        continue;
+      }
       FileInputFormat.addInputPath(job, new Path(input + "/" + year1));
       year1++;
     }

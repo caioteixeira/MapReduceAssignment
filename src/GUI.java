@@ -4,6 +4,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 
 import javax.swing.JButton;
@@ -49,12 +50,12 @@ public class GUI extends JFrame {
   private JComboBox<String> dayw;
   private DefaultCategoryDataset ds;
   private static float min = 999999;
-  private static float max = 0;
+  private static float max = -1;
 
   public GUI(String input, String output, DefaultCategoryDataset ds) {
     this.ds = ds;
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setBounds(100, 100, 600, 410);
+    setBounds(100, 100, 750, 460);
     setResizable(false);
 
     contentPane = new JPanel();
@@ -67,8 +68,8 @@ public class GUI extends JFrame {
     paneLoad.setLayout(null);
 
     JLabel load = new JLabel("Loading...");
-    load.setFont(new Font("Tahoma", Font.BOLD, 22));
-    load.setBounds(240, 50, 150, 50); // setBounds(x, y, largura, altura)
+    load.setFont(new Font("Tahoma", Font.BOLD, 25));
+    load.setBounds(300, 50, 150, 50); // setBounds(x, y, largura, altura)
     paneLoad.add(load);
 
     paneLoad.setVisible(false);
@@ -83,24 +84,24 @@ public class GUI extends JFrame {
     parametres(contentPane);
 
     years = new ArrayList<Integer>();
-    
+
     Configuration conf = new Configuration();
     try {
-		FileSystem fs = FileSystem.get(conf);
-		
-		for (Integer i = 1901; i <= 2017; i++) {
-			String pathStr = i.toString();
-			Path path = new Path(pathStr);
-			if(fs.isDirectory(path))
-			{
-				years.add(i);
-			}
-	    }
-	} catch (IOException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-		System.out.println("Unable to read input from HDFS!");
-	}
+    FileSystem fs = FileSystem.get(conf);
+    
+    for (Integer i = 1901; i <= 2017; i++) {
+      String pathStr = i.toString();
+      Path path = new Path(pathStr);
+      if(fs.isDirectory(path))
+      {
+        years.add(i);
+      }
+      }
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      System.out.println("Unable to read input from HDFS!");
+    }
 
     JLabel period = new JLabel("Period:");
     period.setFont(new Font("Tahoma", Font.BOLD, 14));
@@ -145,7 +146,7 @@ public class GUI extends JFrame {
     });
 
     btnStdDev.setFont(new Font("Tahoma", Font.PLAIN, 10));
-    btnStdDev.setBounds(300, 365, 140, 30);
+    btnStdDev.setBounds(450, 415, 140, 30);
     contentPane.add(btnStdDev);
 
     JButton btnMean = new JButton("Mean");
@@ -156,7 +157,7 @@ public class GUI extends JFrame {
     });
 
     btnMean.setFont(new Font("Tahoma", Font.PLAIN, 10));
-    btnMean.setBounds(470, 365, 120, 30);
+    btnMean.setBounds(620, 415, 120, 30);
     contentPane.add(btnMean);
   }
 
@@ -302,6 +303,7 @@ public class GUI extends JFrame {
     TextReader read = new TextReader(output + "/part-r-00000");
     String lres = read.readLine(1);
     while (lres != null) {
+      HashMap<Integer, Float> vals = new HashMap<Integer, Float>();
       StringTokenizer d = new StringTokenizer(lres);
       String title = d.nextToken();
       int pos1 = lres.indexOf('{');
@@ -320,7 +322,12 @@ public class GUI extends JFrame {
         if (n > max) {
           max = n + 3;
         }
-        ds.addValue((Number) n, title, y);
+        vals.put(y, n);
+      }
+      int year1 = y1 - 1;
+      while (year1 <= y2) {
+        ds.addValue((Number) vals.get(year1), title, year1);
+        year1++;
       }
       lres = read.readLine(1);
     }
@@ -335,7 +342,7 @@ public class GUI extends JFrame {
     if (min < max)
       yAxis.setRange(min, max);
     ChartPanel cp = new ChartPanel(graph);
-    cp.setBounds(160, 70, 430, 290);
+    cp.setBounds(160, 70, 580, 340);
     contentPane.add(cp);
   }
 }
