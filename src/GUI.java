@@ -137,6 +137,17 @@ public class GUI extends JFrame {
     dayw.setFont(new Font("Tahoma", Font.PLAIN, 10));
     dayw.setBounds(460, 30, 90, 30);
     contentPane.add(dayw);
+    
+    JButton btnMinimumSqr = new JButton("Minimum Square");
+    btnMinimumSqr.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent arg0) {
+        execute(input, output, 3);
+      }
+    });
+
+    btnMinimumSqr.setFont(new Font("Tahoma", Font.PLAIN, 10));
+    btnMinimumSqr.setBounds(280, 415, 140, 30);
+    contentPane.add(btnMinimumSqr);
 
     JButton btnStdDev = new JButton("Standard Deviation");
     btnStdDev.addActionListener(new ActionListener() {
@@ -235,9 +246,18 @@ public class GUI extends JFrame {
     try {
       boolean res = true;
       if (f == 1)
-        res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
+      {
+        res = Hadoop.executeMinimumSquare(m, dw, y1, y2, input, output, pars);
+      }
       else if (f == 2)
+      {
         res = Hadoop.executeStdDev(m, dw, y1, y2, input, output, pars);
+      }
+      else if (f == 3)
+      {
+    	  res = Hadoop.executeMean(m, dw, y1, y2, input, output, pars);
+      }
+      
       if (!res) {
         if (errorFileExists() == 0) {
           Hadoop.deleteDir(new File(output));

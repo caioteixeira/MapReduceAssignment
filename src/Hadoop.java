@@ -235,6 +235,106 @@ public abstract class Hadoop {
     }
 
   }
+  
+  public static class MinimumSqrReducer
+  extends Reducer<Text, MapWritable, Text, MapWritable> {
+	private MapWritable result = new MapWritable();
+	
+	public void reduce(Text key, Iterable<MapWritable> values,
+	    Context context) throws IOException, InterruptedException {
+		HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
+	      HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
+	      HashMap<Integer, ArrayList<Float>> vals =
+	          new HashMap<Integer, ArrayList<Float>>();
+
+	      int year1 = 0;
+
+	      for (MapWritable val : values) {
+	        year1 = y1;
+	        while (year1 <= y2) {
+	          if (val.get(new IntWritable(year1)) == null) {
+	            year1++;
+	            continue;
+	          }
+	          float value = ((FloatWritable) val.get(new IntWritable(year1))).get();
+	          if (sum.get(year1) == null) {
+	            sum.put(year1, value);
+	            length.put(year1, 1);
+	            vals.put(year1, new ArrayList<Float>());
+	            vals.get(year1).add(value);
+	          } else {
+	            sum.put(year1, sum.get(year1) + value);
+	            length.put(year1, length.get(year1) + 1);
+	            vals.get(year1).add(value);
+	          }
+	          year1++;
+	        }
+	      }
+
+	      year1 = y1;
+	      while (year1 <= y2) {
+	        if (sum.get(year1) == null) {
+	          year1++;
+	          continue;
+	        }
+	        float year1Mean = (sum.get(year1) / length.get(year1));
+	        float year2Mean = (sum.get(y2) / length.get(y2));
+	        float minimumSquareB =
+	            (float) computeMinimumSquareB(vals.get(year1), vals.get(y2), year1Mean, year2Mean);
+	        
+	        float minimumSquareA = year2Mean - minimumSquareB * year1Mean;
+	        
+	        result.put(new FloatWritable(minimumSquareB), new FloatWritable(minimumSquareA));
+	        year1++;
+	      }
+
+	      context.write(key, result);
+	}
+	
+	public float computeMinimumSquareB(ArrayList<Float> y1Vals, ArrayList<Float> y2Vals, float y1Mean, float y2Mean)
+	{
+		float sum1 = 0;
+		float sum2 = 0;
+		
+		int lenght = Math.min(y1Vals.size(), y2Vals.size());
+		
+		for(int i = 0; i < lenght; i++)
+		{
+			Float x = y1Vals.get(i);
+			Float y = y2Vals.get(i);
+			sum1 += x * (y - y2Mean);
+			sum2 += x * (x - y1Mean);
+		}
+		
+		return sum1/sum2;
+	}
+	
+	public Double getVariance(ArrayList<Float> vals, double mean, int y) {
+	  double sum = 0;
+	  int length = 0;
+	  for (float val : vals) {
+	    sum += (val - mean) * (val - mean);
+	    length++;
+	  }
+	  return (sum / (length - 1));
+	}
+	
+  }
+  
+  public static boolean executeMinimumSquare(int m, int dw, int year1, int year2, String input,
+		  String output, ArrayList<Integer> par) throws Exception
+  {
+	  if(new File(output).exists()) {
+		  return false;
+	  }
+	  
+	  Job job1 = initializeJob(m, dw, year1, year2, input, output, par);
+	  job1.setReducerClass(MinimumSqrReducer.class);
+	  
+	  job1.waitForCompletion(true);
+	  
+	  return true;
+  }
 
   public static boolean executeMean(int m, int dw, int year1, int year2,
       String input, String output, ArrayList<Integer> par) throws Exception {
