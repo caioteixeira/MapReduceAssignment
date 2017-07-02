@@ -228,7 +228,6 @@ public class GUI extends JFrame {
       } else {
         y1++;
         saveData(output);
-        Hadoop.deleteDir(new File(output));
       }
       createGraph();
     } catch (Exception e) {
@@ -287,16 +286,27 @@ public class GUI extends JFrame {
     while (lres != null) {
       StringTokenizer d = new StringTokenizer(lres);
       String title = d.nextToken();
-      float n = Float.parseFloat(d.nextToken());
-      if (n < min) {
-        min = n - 3;
+      int pos1 = lres.indexOf('{');
+      int pos2 = lres.indexOf('}');
+      String s1 = lres.substring(pos1 + 1, pos2);
+      String[] s2 = s1.split(",");
+      for (int i = 0; i < s2.length; i++) {
+        String[] s3 = s2[i].split("=");
+        s3[0] = s3[0].replaceAll("[^0-9.,]+", "");
+        s3[1] = s3[1].replaceAll("[^0-9.,]+", "");
+        int y = Integer.parseInt(s3[0]);
+        float n = Float.parseFloat(s3[1]);
+        if (n < min) {
+          min = n - 3;
+        }
+        if (n > max) {
+          max = n + 3;
+        }
+        ds.addValue((Number) n, title, y);
       }
-      if (n > max) {
-        max = n + 3;
-      }
-      ds.addValue((Number) n, title, y1);
       lres = read.readLine(1);
     }
+    read.closeReader();
   }
 
   private void createGraph() {
