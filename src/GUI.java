@@ -90,7 +90,7 @@ public class GUI extends JFrame {
       FileSystem fs = FileSystem.get(conf);
 
       for (Integer i = 1901; i <= 2017; i++) {
-        Path path = new Path(input);
+        Path path = new Path(input + "/" + i);
         if (fs.isDirectory(path)) {
           years.add(i);
         }
