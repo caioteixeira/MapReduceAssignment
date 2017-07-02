@@ -10,6 +10,7 @@ import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
@@ -243,78 +244,67 @@ public abstract class Hadoop {
 	
 	public void reduce(Text key, Iterable<MapWritable> values,
 	    Context context) throws IOException, InterruptedException {
-		HashMap<Integer, Float> sum = new HashMap<Integer, Float>();
-	      HashMap<Integer, Integer> length = new HashMap<Integer, Integer>();
-	      HashMap<Integer, ArrayList<Float>> vals =
-	          new HashMap<Integer, ArrayList<Float>>();
+	      ArrayList<Float> xVals = new ArrayList<Float>();
+	      ArrayList<Float> yVals = new ArrayList<Float>();
 
 	      for (MapWritable val : values) {    	  
 	          int year = y1;
-	  	      Writable entry = val.get(new IntWritable(year));
-	  	      
-	  	      if (entry == null)
-	  	      {
-	  	    	  year = y2;
-	  	    	  entry = val.get(new IntWritable(year));
-	  	      }
+	          Writable entry = null;
+	          do
+	          {
+	        	  entry = val.get(new IntWritable(year));
+	        	  year++;
+	          } while(entry == null && year <= y2);
 	  	      
 	  	      if( entry == null)
 	  	      {
 	  	    	  continue;
 	  	      }
+	  	      year--;
 	  	      
 	  	      float value = ((FloatWritable) entry).get();
-	  	      if (sum.get(year) == null) {
-	  	        sum.put(year, value);
-	  	        length.put(year, 1);
-	  	        vals.put(year, new ArrayList<Float>());
-	  	        vals.get(year).add(value);
-	  	      } else {
-	  	        sum.put(year, sum.get(year) + value);
-	  	        length.put(year, length.get(year) + 1);
-	  	        vals.get(year).add(value);
-	  	      }
+	  	      xVals.add((float) year);
+	  	      yVals.add(value);
 	      }
 
 	      
-	      float year1Mean = (sum.get(y1) / length.get(y1));
-	      float year2Mean = (sum.get(y2) / length.get(y2));
-	      float minimumSquareB =
-	          (float) computeMinimumSquareB(vals.get(y1), vals.get(y2), year1Mean, year2Mean);
+	      float xMean = computeMean(xVals);
+	      float yMean = computeMean(yVals);
+	      double minimumSquareB =
+	          computeMinimumSquareB(xVals, yVals, xMean, yMean);
 	        
-	      float minimumSquareA = year2Mean - minimumSquareB * year1Mean;
+	      double minimumSquareA = yMean - minimumSquareB * xMean;
 	        
-	      result.put(new FloatWritable(minimumSquareB), new FloatWritable(minimumSquareA));
+	      result.put(new DoubleWritable(minimumSquareB), new DoubleWritable(minimumSquareA));
 
 	      context.write(key, result);
 	}
 	
-	public float computeMinimumSquareB(ArrayList<Float> y1Vals, ArrayList<Float> y2Vals, float y1Mean, float y2Mean)
+	public float computeMean(ArrayList<Float> vals)
 	{
-		float sum1 = 0;
-		float sum2 = 0;
+		float sum = 0.0f;
+		for(Float value : vals)
+		{
+			sum += value;
+		}
+		return sum/vals.size();
+	}
+	
+	public double computeMinimumSquareB(ArrayList<Float> xVals, ArrayList<Float> yVals, float xMean, float yMean)
+	{
+		double sum1 = 0;
+		double sum2 = 0;
 		
-		int lenght = Math.min(y1Vals.size(), y2Vals.size());
-		
+		int lenght = Math.min(xVals.size(), yVals.size());
 		for(int i = 0; i < lenght; i++)
 		{
-			Float x = y1Vals.get(i);
-			Float y = y2Vals.get(i);
-			sum1 += x * (y - y2Mean);
-			sum2 += x * (x - y1Mean);
+			Float x = xVals.get(i);
+			Float y = yVals.get(i);
+			sum1 += x * (y - yMean);
+			sum2 += x * (x - xMean);
 		}
 		
 		return sum1/sum2;
-	}
-	
-	public Double getVariance(ArrayList<Float> vals, double mean, int y) {
-	  double sum = 0;
-	  int length = 0;
-	  for (float val : vals) {
-	    sum += (val - mean) * (val - mean);
-	    length++;
-	  }
-	  return (sum / (length - 1));
 	}
 	
   }

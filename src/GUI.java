@@ -49,8 +49,8 @@ public class GUI extends JFrame {
   private JPanel contentPane;
   private JComboBox<String> dayw;
   private DefaultCategoryDataset ds;
-  private static float min = 999999;
-  private static float max = -1;
+  private static double min = 999999;
+  private static double max = -1;
 
   public GUI(String input, String output, DefaultCategoryDataset ds) {
     this.ds = ds;
@@ -269,7 +269,7 @@ public class GUI extends JFrame {
         
         if(f == 3)
         {
-        	//Minimum Sqr
+        	saveMinimumSquareData(output);
         }
         else
         {
@@ -374,42 +374,50 @@ public class GUI extends JFrame {
     contentPane.add(cp);
   }
   
-//  private void saveMinimumSquareData(String output)
-//  {
-//	if (!new File(output + "/part-r-00000").exists()) {
-//	      return;
-//    }
-//    TextReader read = new TextReader(output + "/part-r-00000");
-//    String lres = read.readLine(1);
-//    while (lres != null) {
-//      HashMap<Integer, Float> vals = new HashMap<Integer, Float>();
-//      StringTokenizer d = new StringTokenizer(lres);
-//      String title = d.nextToken();
-//      int pos1 = lres.indexOf('{');
-//      int pos2 = lres.indexOf('}');
-//      String s1 = lres.substring(pos1 + 1, pos2);
-//      String[] s2 = s1.split(",");
-//      for (int i = 0; i < s2.length; i++) {
-//        String[] s3 = s2[i].split("=");
-//        s3[0] = s3[0].replaceAll("[^0-9.,]+", "");
-//        s3[1] = s3[1].replaceAll("[^0-9.,]+", "");
-//        int y = Integer.parseInt(s3[0]);
-//        float n = Float.parseFloat(s3[1]);
-//        if (n < min) {
-//          min = n - 3;
-//        }
-//        if (n > max) {
-//          max = n + 3;
-//        }
-//        vals.put(y, n);
-//      }
-//      int year1 = y1 - 1;
-//      while (year1 <= y2) {
-//        ds.addValue((Number) vals.get(year1), title, year1);
-//        year1++;
-//      }
-//      lres = read.readLine(1);
-//    }
-//    read.closeReader();
-//  }
+  private void saveMinimumSquareData(String output)
+  {
+	if (!new File(output + "/part-r-00000").exists()) {
+	      return;
+    }
+    TextReader read = new TextReader(output + "/part-r-00000");
+    String lres = read.readLine(1);
+    while (lres != null) {
+      StringTokenizer d = new StringTokenizer(lres);
+      String title = d.nextToken();
+      int pos1 = lres.indexOf('{');
+      int pos2 = lres.indexOf('}');
+      String s1 = lres.substring(pos1 + 1, pos2);
+      String[] s2 = s1.split(",");
+      
+      double b = 0.0f;
+      double a = 0.0f;
+      for (int i = 0; i < s2.length; i++) {
+        String[] s3 = s2[i].split("=");
+        s3[0] = s3[0].replaceAll("[^0-9.,]+", "");
+        s3[1] = s3[1].replaceAll("[^0-9.,]+", "");
+        b = Double.parseDouble(s3[0]);
+        a = Double.parseDouble(s3[1]);
+      }
+      
+      int year1 = y1 - 1;
+      //Predict two years
+      for (int year = year1; year <= y2 + 2; year++) {
+    	double value = a + b * year;
+    	
+    	if (value > max) {
+    		max = value + 3 * b;
+        }
+    	
+    	if(value < min)
+    	{
+    		min = value - b;
+    	}
+    	
+        ds.addValue((Number) value, title, year1);
+        year1++;
+      }
+      lres = read.readLine(1);
+    }
+    read.closeReader();
+  }
 }
